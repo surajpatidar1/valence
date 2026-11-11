@@ -1,0 +1,46 @@
+
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 420 190"
+     width="420" height="190">
+
+  <!-- Light beige background -->
+  <rect width="420" height="190" fill="#F1E8D8"/>
+
+  <!-- V Monogram -->
+  <g transform="translate(155 12)"
+     fill="none"
+     stroke="#173D32"
+     stroke-width="5"
+     stroke-linejoin="round">
+
+    <path d="M8 12 L48 91 L88 12"/>
+
+    <path d="M48 91 L48 106"
+          stroke="#B99A65"
+          stroke-width="3"/>
+
+    <path d="M22 38 L48 87 L74 38"
+          stroke="#B99A65"
+          stroke-width="1.5"/>
+  </g>
+
+  <!-- Brand Name -->
+  <text x="210" y="151"
+        text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="35"
+        font-weight="500"
+        letter-spacing="9"
+        fill="#173D32">
+    VALENCE
+  </text>
+
+  <!-- Gold decorative detail -->
+  <path d="M135 168 H185 M235 168 H285"
+        stroke="#B99A65"
+        stroke-width="1"/>
+
+  <circle cx="210" cy="168"
+          r="2.5" fill="#B99A65"/>
+
+</svg>
