@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import MagneticButton from './MagneticButton';
 import HeroExample from './HeroExample';
+import { CONTACT } from '../data/contact';
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -11,11 +12,17 @@ export default function Hero({ ready }: { ready: boolean }) {
     transition: { duration: 0.9, delay, ease },
   });
 
+  const bookingHref = CONTACT.bookingUrl || '#contact';
+  const isExternal = Boolean(bookingHref && (bookingHref.startsWith('http') || bookingHref.startsWith('[')));
+
   return (
     <section className="hero">
       <div className="container">
         <motion.div className="hero__meta" {...fadeUp(0)}>
           <span>Web, app &amp; AI development for growing businesses</span>
+          <a href="/partners" className="hero__hire-link">
+            <span>Need extra developers or a team?</span> <b>Hire developers →</b>
+          </a>
         </motion.div>
 
         <h1 className="hero__title">
@@ -38,7 +45,13 @@ export default function Hero({ ready }: { ready: boolean }) {
             reach more customers and spend less time on repetitive work.
           </motion.p>
           <motion.div className="hero__actions" {...fadeUp(0.45)}>
-            <MagneticButton href="#contact">Book a free consultation</MagneticButton>
+            <MagneticButton
+              href={bookingHref}
+              target={isExternal ? '_blank' : undefined}
+              rel={isExternal ? 'noopener noreferrer' : undefined}
+            >
+              Book a free consultation
+            </MagneticButton>
             <a href="#services" className="link-arrow">See what we do <span aria-hidden="true">→</span></a>
           </motion.div>
         </div>

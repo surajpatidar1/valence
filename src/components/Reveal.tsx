@@ -5,7 +5,7 @@ type Props = {
   children: ReactNode;
   delay?: number;
   y?: number;
-  as?: 'div' | 'p' | 'h2' | 'h3' | 'li' | 'article' | 'ul' | 'span' | 'form' | 'details';
+  as?: 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'li' | 'article' | 'ul' | 'span' | 'form' | 'details';
   className?: string;
 } & Omit<HTMLMotionProps<'div'>, 'children'>;
 

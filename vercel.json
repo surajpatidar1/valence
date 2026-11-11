@@ -1,0 +1,10 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/partners", "destination": "/partners/index.html" },
+    { "source": "/partners/", "destination": "/partners/index.html" },
+    { "source": "/reviews", "destination": "/reviews/index.html" },
+    { "source": "/reviews/", "destination": "/reviews/index.html" }
+  ]
+}
+

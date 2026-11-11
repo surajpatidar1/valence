@@ -33,6 +33,7 @@ export default function HeroExample({ ready }: { ready: boolean }) {
       transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
     >
       <figcaption className="example__intro">
+        <span className="example__badge">Example workflow</span>
         <span>For example</span>
         <b>Order to invoice</b>
       </figcaption>

@@ -1,6 +1,6 @@
-export default function Logo({ light = false }: { light?: boolean }) {
+export default function Logo({ light = false, href = '#top' }: { light?: boolean; href?: string }) {
   return (
-    <a href="#top" className={`logo${light ? ' logo--light' : ''}`}>
+    <a href={href} className={`logo${light ? ' logo--light' : ''}`}>
       <img
         src={light ? '/logo-horizontal-light.svg' : '/logo-horizontal.svg'}
         alt="Valance home"

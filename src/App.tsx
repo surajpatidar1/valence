@@ -3,8 +3,11 @@ import Header from './components/Header';
 import Hero from './components/Hero';
 import TechStrip from './components/TechStrip';
 import Services from './components/Services';
+import HireBanner from './components/HireBanner';
 import Portfolio from './components/Portfolio';
+import ReviewsStrip from './components/ReviewsStrip';
 import Process from './components/Process';
+import About from './components/About';
 import Faq from './components/Faq';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
@@ -21,8 +24,11 @@ export default function App() {
         <Hero ready />
         <TechStrip />
         <Services />
+        <HireBanner />
         <Portfolio />
+        <ReviewsStrip />
         <Process />
+        <About />
         <Faq />
         <Contact />
       </main>

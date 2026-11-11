@@ -9,16 +9,29 @@ export default function MagneticButton({
   variant = 'primary',
   size,
   className = '',
+  target,
+  rel,
+  onClick,
 }: {
   href: string;
   children: ReactNode;
   variant?: Variant;
   size?: 'sm';
   className?: string;
+  target?: string;
+  rel?: string;
+  onClick?: () => void;
 }) {
   const ref = useMagnetic<HTMLAnchorElement>();
   return (
-    <a ref={ref} href={href} className={`btn btn--${variant}${size ? ' btn--sm' : ''} ${className}`}>
+    <a
+      ref={ref}
+      href={href}
+      className={`btn btn--${variant}${size ? ' btn--sm' : ''} ${className}`}
+      target={target}
+      rel={rel}
+      onClick={onClick}
+    >
       {children}
     </a>
   );

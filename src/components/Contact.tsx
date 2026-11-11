@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import Reveal from './Reveal';
 import { useToast } from './Toast';
 import { CONTACT } from '../data/contact';
@@ -46,9 +46,21 @@ const CHANNELS: Channel[] = [
 export default function Contact() {
   const toast = useToast();
   const [topic, setTopic] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onTopicSelect = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (detail && TOPICS.includes(detail)) {
+        setTopic(detail);
+      }
+    };
+    window.addEventListener('select-contact-topic', onTopicSelect);
+    return () => window.removeEventListener('select-contact-topic', onTopicSelect);
+  }, []);
+
   const [v, setV] = useState<Values>({ name: '', email: '', message: '' });
   const [touched, setTouched] = useState<Partial<Record<keyof Values, boolean>>>({});
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   const errors = validate(v);
   const err = (k: keyof Values) => (touched[k] ? errors[k] : undefined);
@@ -64,26 +76,19 @@ export default function Contact() {
 
     const payload = { ...v, topic: topic ?? 'Not specified' };
 
-    // No form backend configured yet: open the visitor's email app with everything pre-filled.
-    if (!CONTACT.formEndpoint) {
-      const subject = `Project enquiry${topic ? `: ${topic}` : ''} from ${v.name}`;
-      const body = `${v.message}\n\n${v.name}\n${v.email}`;
-      window.location.href = `mailto:${CONTACT.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      return;
-    }
-
     setStatus('sending');
     try {
-      const res = await fetch(CONTACT.formEndpoint, {
+      const endpoint = CONTACT.formEndpoint || `mailto:${CONTACT.email}`;
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setStatus('sent');
     } catch {
-      setStatus('idle');
-      toast(`Something went wrong. Please email us at ${CONTACT.email}.`);
+      setStatus('error');
+      toast(`Something went wrong. Please email us directly at ${CONTACT.email}.`);
     }
   };
 
@@ -92,7 +97,10 @@ export default function Contact() {
       id: `f-${k}`,
       placeholder: ' ',
       value: v[k],
-      onChange: (e: { target: { value: string } }) => setV((s) => ({ ...s, [k]: e.target.value })),
+      onChange: (e: { target: { value: string } }) => {
+        if (status === 'error') setStatus('idle');
+        setV((s) => ({ ...s, [k]: e.target.value }));
+      },
       onBlur: () => setTouched((t) => ({ ...t, [k]: true })),
       'aria-invalid': !!err(k),
       'aria-describedby': err(k) ? `e-${k}` : undefined,
@@ -138,7 +146,13 @@ export default function Contact() {
                   <legend>What can we help with? <span>(optional)</span></legend>
                   {TOPICS.map((t) => (
                     <label key={t}>
-                      <input type="radio" name="topic" checked={topic === t} onChange={() => setTopic(t)} onClick={() => topic === t && setTopic(null)} />
+                      <input
+                        type="radio"
+                        name="topic"
+                        checked={topic === t}
+                        onChange={() => setTopic(t)}
+                        onClick={() => topic === t && setTopic(null)}
+                      />
                       <span>{t}</span>
                     </label>
                   ))}
@@ -150,7 +164,18 @@ export default function Contact() {
                 </div>
                 {field('message', 'Briefly, what are you looking for?', { area: true })}
 
-                <button type="submit" className={`btn btn--primary btn--block${status === 'sending' ? ' is-loading' : ''}`} disabled={status === 'sending'}>
+                {status === 'error' && (
+                  <div className="form__alert form__alert--error" role="alert">
+                    <strong>Unable to send message right now.</strong>
+                    <span> Please try again or email us directly at <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className={`btn btn--primary btn--block${status === 'sending' ? ' is-loading' : ''}`}
+                  disabled={status === 'sending'}
+                >
                   <span className="btn__label">{status === 'sending' ? 'Sending…' : 'Send message'}</span>
                   <span className="btn__spinner" aria-hidden="true" />
                 </button>
@@ -159,7 +184,14 @@ export default function Contact() {
                 </p>
               </motion.form>
             ) : (
-              <motion.div key="ok" className="form form__success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} role="status">
+              <motion.div
+                key="ok"
+                className="form form__success"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                role="status"
+              >
                 <svg className="check" viewBox="0 0 52 52" aria-hidden="true">
                   <motion.circle cx="26" cy="26" r="24" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6 }} />
                   <motion.path d="m15 27 7 7 15-15" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.5 }} />

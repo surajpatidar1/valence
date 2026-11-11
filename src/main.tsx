@@ -1,14 +1,28 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { MotionConfig } from 'framer-motion';
-import App from './App';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.tsx';
+import PartnerPage from './components/PartnerPage.tsx';
+import ReviewsPage from './components/ReviewsPage.tsx';
 import './styles.css';
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    {/* "user" respects prefers-reduced-motion across all framer-motion animations */}
-    <MotionConfig reducedMotion="user">
-      <App />
-    </MotionConfig>
-  </StrictMode>,
-);
+const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+const isPartner = path === '/partners' || path.startsWith('/partners/') || path === '/partners.html';
+const isReviews = path === '/reviews' || path.startsWith('/reviews/') || path === '/reviews.html';
+
+const RootComponent = isPartner ? PartnerPage : isReviews ? ReviewsPage : App;
+
+const rootEl = document.getElementById('root')!;
+if (rootEl.hasChildNodes()) {
+  ReactDOM.hydrateRoot(
+    rootEl,
+    <React.StrictMode>
+      <RootComponent />
+    </React.StrictMode>,
+  );
+} else {
+  ReactDOM.createRoot(rootEl).render(
+    <React.StrictMode>
+      <RootComponent />
+    </React.StrictMode>,
+  );
+}

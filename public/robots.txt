@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://valence-sable.vercel.app/sitemap.xml
+

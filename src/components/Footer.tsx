@@ -1,7 +1,6 @@
 import Logo from './Logo';
 import MagneticButton from './MagneticButton';
 import Reveal from './Reveal';
-import { HAS_PROJECTS } from '../data/projects';
 import { CONTACT } from '../data/contact';
 
 export default function Footer() {
@@ -10,30 +9,34 @@ export default function Footer() {
       <div className="container">
         <div className="footer__cta">
           <Reveal as="h2" className="footer__big">Have a project in mind?</Reveal>
-          <MagneticButton href="#contact" variant="gold">Start a conversation</MagneticButton>
+          <MagneticButton href="/#contact" variant="gold">Start a conversation</MagneticButton>
         </div>
         <div className="footer__grid">
           <div>
-            <Logo light />
+            <Logo light href="/" />
             <p className="footer__tag">Web, app and AI solutions for growing businesses.</p>
           </div>
           <nav aria-label="Services">
             <h4>Services</h4>
             <ul>
-              <li><a href="#services">Web Development</a></li>
-              <li><a href="#services">App Development</a></li>
-              <li><a href="#services">SEO</a></li>
-              <li><a href="#services">Business Automation</a></li>
-              <li><a href="#services">LLM Integration</a></li>
+              <li><a href="/partners">Hire developers</a></li>
+              <li><a href="/#services">Web Development</a></li>
+              <li><a href="/#services">App Development</a></li>
+              <li><a href="/#services">SEO</a></li>
+              <li><a href="/#services">Business Automation</a></li>
+              <li><a href="/#services">LLM Integration</a></li>
             </ul>
           </nav>
           <nav aria-label="Company">
             <h4>Company</h4>
             <ul>
-              {HAS_PROJECTS && <li><a href="#work">Our work</a></li>}
-              <li><a href="#process">Our process</a></li>
-              <li><a href="#faq">FAQ</a></li>
-              <li><a href="#contact">Contact</a></li>
+              <li><a href="/#work">Our work</a></li>
+              <li><a href="/#process">Our process</a></li>
+              <li><a href="/#about">About us</a></li>
+              <li><a href="/reviews">Reviews</a></li>
+              <li><a href="/#faq">FAQ</a></li>
+              <li><a href="/partners#developer-form">Become a partner</a></li>
+              <li><a href="/#contact">Contact</a></li>
             </ul>
           </nav>
           <div>
