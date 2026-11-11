@@ -1,7 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useRef, useState } from 'react';
 import Reveal from './Reveal';
 import { HAS_PROJECTS, PROJECTS, type Category, type Project } from '../data/projects';
+
+/** Projects shown per page (2 × 2 grid on desktop). */
+const PAGE_SIZE = 4;
 
 const LABELS: Record<Category, string> = {
   Web: 'Web',
@@ -41,16 +44,14 @@ function Mockup({ p }: { p: Project }) {
   );
 }
 
-function Card({ p }: { p: Project }) {
+function Card({ p, i }: { p: Project; i: number }) {
   const Wrapper = p.url ? 'a' : 'div';
   return (
     <motion.article
-      layout
       className="work-card"
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.5, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
     >
       <Wrapper
         className="work-card__inner"
@@ -78,37 +79,64 @@ function Card({ p }: { p: Project }) {
 }
 
 export default function Portfolio() {
-  const [filter, setFilter] = useState<'All' | Category>('All');
-  const categories = useMemo(() => Array.from(new Set(PROJECTS.map((p) => p.category))), []);
-  const list = PROJECTS.filter((p) => filter === 'All' || p.category === filter);
+  const [page, setPage] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
 
   if (!HAS_PROJECTS) return null;
 
+  const pages = Math.ceil(PROJECTS.length / PAGE_SIZE);
+  const items = PROJECTS.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+
+  const goTo = (p: number) => {
+    if (p < 0 || p >= pages || p === page) return;
+    setPage(p);
+    sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <section className="section work" id="work">
+    <section className="section work" id="work" ref={sectionRef}>
       <div className="container">
-        <div className="section__head section__head--row">
-          <div>
-            <Reveal as="p" className="eyebrow">Our work</Reveal>
-            <Reveal as="h2" className="section__title" delay={0.05}>Selected projects.</Reveal>
-          </div>
-          {categories.length > 1 && (
-            <Reveal className="filters" role="group" aria-label="Filter projects">
-              {(['All', ...categories] as const).map((c) => (
-                <button key={c} className={`filter${filter === c ? ' is-active' : ''}`} aria-pressed={filter === c} onClick={() => setFilter(c)}>
-                  {filter === c && <motion.span layoutId="work-filter" className="filter__pill" transition={{ type: 'spring', stiffness: 400, damping: 34 }} />}
-                  <span className="filter__label">{c === 'All' ? 'All' : LABELS[c]}</span>
-                </button>
-              ))}
-            </Reveal>
-          )}
+        <div className="section__head">
+          <Reveal as="p" className="eyebrow">Our work</Reveal>
+          <Reveal as="h2" className="section__title" delay={0.05}>Selected projects.</Reveal>
         </div>
 
-        <motion.div layout className="work-grid">
-          <AnimatePresence mode="popLayout">
-            {list.map((p) => <Card key={p.title} p={p} />)}
-          </AnimatePresence>
-        </motion.div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={page}
+            className="work-grid"
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.25 }}
+            aria-live="polite"
+          >
+            {items.map((p, i) => <Card key={p.title} p={p} i={i} />)}
+          </motion.div>
+        </AnimatePresence>
+
+        {pages > 1 && (
+          <nav className="pager" aria-label="Projects pages">
+            <button className="pager__btn" onClick={() => goTo(page - 1)} disabled={page === 0} aria-label="Previous page">
+              ←
+            </button>
+            <ol className="pager__pages">
+              {Array.from({ length: pages }, (_, i) => (
+                <li key={i}>
+                  <button
+                    className={`pager__num${i === page ? ' is-active' : ''}`}
+                    onClick={() => goTo(i)}
+                    aria-label={`Page ${i + 1}`}
+                    aria-current={i === page ? 'page' : undefined}
+                  >
+                    {i + 1}
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <button className="pager__btn" onClick={() => goTo(page + 1)} disabled={page === pages - 1} aria-label="Next page">
+              →
+            </button>
+          </nav>
+        )}
       </div>
     </section>
   );

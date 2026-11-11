@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 110" width="430" height="110">
+  <title>Valance</title>
+  <!-- V monogram (from logo.svg) -->
+  <g transform="translate(-2 -4)" fill="none" stroke="#173D32" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M8 12 L48 91 L88 12"/>
+    <path d="M48 91 L48 106" stroke="#B99A65" stroke-width="3"/>
+    <path d="M22 38 L48 87 L74 38" stroke="#B99A65" stroke-width="1.5"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="112" y="75" font-family="Arial, Helvetica, sans-serif" font-size="54" font-weight="500" letter-spacing="7" textLength="312" lengthAdjust="spacing" fill="#173D32">VALANCE</text>
+</svg>
