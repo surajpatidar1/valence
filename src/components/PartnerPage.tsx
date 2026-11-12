@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import BackToTop from './BackToTop';
@@ -8,166 +8,217 @@ import MagneticButton from './MagneticButton';
 import { ToastProvider, useToast } from './Toast';
 import { CONTACT } from '../data/contact';
 
-const NEED_OPTIONS = [
-  'Extra developers',
-  'A small team',
-  'A specialist',
-  'Ongoing support',
-  'Not sure yet',
+const HELP_OPTIONS = [
+  {
+    title: 'Extra developers for a deadline',
+    text: 'Quickly augment your existing team with senior engineers who hit the ground running to ship critical releases on time.',
+  },
+  {
+    title: 'A small team for a new product',
+    text: 'An assembled product team covering frontend, backend, and UI design to take your new software from brief to live deployment.',
+  },
+  {
+    title: 'Specialists for one part of the build',
+    text: 'Targeted expertise for complex features: native iOS/Android apps, high-throughput APIs, AI integration, or workflow automation.',
+  },
+  {
+    title: 'Ongoing monthly support',
+    text: 'Reliable engineering capacity on a monthly retainer for iterative improvements, monitoring, security updates, and maintenance.',
+  },
 ];
 
-const SKILL_CHIPS = [
-  'Frontend',
-  'Backend',
-  'Mobile',
-  'AI/LLM',
-  'Automation',
-  'QA',
-  'Design',
+const PROCESS_STEPS = [
+  { title: 'Tell us what you need', text: 'Share your scope, required technologies, and timeline. No commitment required.' },
+  { title: 'Get a clear plan and quote', text: 'We review your requirements and provide a structured milestone plan with a clear fixed quote.' },
+  { title: 'We match and start', text: 'We assign the right developers for your stack and begin sprint execution.' },
+  { title: 'Demos until delivery', text: 'You see working software every week, with progress updates until final handover and launch.' },
 ];
 
-const DURATION_OPTIONS = [
-  'under 1 month',
-  '1-3 months',
-  '3+ months',
-  'ongoing',
+const WHY_POINTS = [
+  {
+    title: 'Clear fixed quotes',
+    text: 'Agreed scope and a fixed quote upfront. You know exactly what you are paying for, with no surprise fees.',
+    icon: <><path d="M7 3h10v18l-2.5-1.6L12 21l-2.5-1.6L7 21z" /><path d="M10 8h4M10 12h4" /></>,
+  },
+  {
+    title: 'NDA available on request',
+    text: 'Your intellectual property, product ideas, and proprietary code are protected from day one.',
+    icon: <><path d="M12 3 5 6v5c0 4.5 3 8.3 7 9.5 4-1.2 7-5 7-9.5V6z" /><path d="m9.5 12 1.8 1.8 3.5-3.6" /></>,
+  },
+  {
+    title: 'Regular demos',
+    text: 'Weekly demos so you can review real working software and give feedback before it reaches production.',
+    icon: <><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M8 20h8M12 16v4M10.5 8.2v4.6L14.5 10.5z" /></>,
+  },
+  {
+    title: 'One point of contact',
+    text: 'A single delivery lead manages milestones and communication, so you always get direct answers.',
+    icon: <><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.8-3.5 3.6-5.5 7-5.5s6.2 2 7 5.5" /></>,
+  },
 ];
 
-const START_OPTIONS = [
-  'this week',
-  'within 2 weeks',
-  'within a month',
-  'flexible',
-];
-
-const DEV_SKILLS = [
-  'Frontend',
-  'Backend',
-  'Mobile',
-  'AI/LLM',
-  'Automation',
-  'QA',
-  'Design',
-  'Other',
-];
-
-const AVAILABILITY = [
-  'Full-time',
-  'Part-time',
-  'Per project',
-];
+const NEED_OPTIONS = ['Extra developers', 'A small team', 'A specialist', 'Ongoing support', 'Not sure yet'];
+const DEV_SKILLS = ['Frontend', 'Backend', 'Mobile', 'AI / LLM', 'Automation', 'Design', 'Other'];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** True when an endpoint has been filled in (not empty and not a [PLACEHOLDER]). */
+const isConfigured = (url?: string) => !!url && !url.trim().startsWith('[');
+
+type Status = 'idle' | 'sending' | 'sent' | 'error';
+
+/**
+ * Sends the form to `endpoint` if configured; otherwise opens the visitor's
+ * email app with the message pre-filled so no enquiry is ever lost.
+ */
+async function sendForm(endpoint: string | undefined, payload: Record<string, string>, subject: string): Promise<'sent' | 'mailto'> {
+  if (!isConfigured(endpoint)) {
+    const body = Object.entries(payload)
+      .filter(([, val]) => val)
+      .map(([k, val]) => `${k}: ${val}`)
+      .join('\n');
+    window.location.href = `mailto:${CONTACT.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    return 'mailto';
+  }
+  const res = await fetch(endpoint!, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return 'sent';
+}
+
+/* Shared floating-label field */
+function Field({
+  id, label, value, onChange, onBlur, error, type = 'text', autoComplete, textarea,
+}: {
+  id: string; label: string; value: string; onChange: (v: string) => void; onBlur?: () => void;
+  error?: string; type?: string; autoComplete?: string; textarea?: boolean;
+}) {
+  const common = {
+    id,
+    placeholder: ' ',
+    value,
+    onChange: (e: { target: { value: string } }) => onChange(e.target.value),
+    onBlur,
+    'aria-invalid': !!error,
+    'aria-describedby': error ? `e-${id}` : undefined,
+  };
+  return (
+    <div className={`field${error ? ' has-error' : ''}`}>
+      {textarea ? <textarea rows={4} {...common} /> : <input type={type} autoComplete={autoComplete} {...common} />}
+      <label htmlFor={id}>{label}</label>
+      {error && <span className="field__err" id={`e-${id}`}>{error}</span>}
+    </div>
+  );
+}
+
+/* Single-choice chip group */
+function ChoiceChips({
+  legend, hint, options, value, onChange, error, id,
+}: {
+  legend: string; hint?: string; options: string[]; value: string; onChange: (v: string) => void; error?: string; id: string;
+}) {
+  return (
+    <fieldset className={`chips chips--skills${error ? ' has-error' : ''}`} id={id} tabIndex={-1} aria-describedby={error ? `e-${id}` : undefined}>
+      <legend>{legend} {hint && <span>{hint}</span>}</legend>
+      <div className="chips__group">
+        {options.map((o) => (
+          <button
+            type="button"
+            key={o}
+            className={`chip-btn${value === o ? ' is-active' : ''}`}
+            aria-pressed={value === o}
+            onClick={() => onChange(value === o ? '' : o)}
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+      {error && <span className="field__err" id={`e-${id}`}>{error}</span>}
+    </fieldset>
+  );
+}
+
+function SuccessCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <motion.div
+      key="success"
+      className="form form__success"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
+      role="status"
+    >
+      <svg className="check" viewBox="0 0 52 52" aria-hidden="true">
+        <motion.circle cx="26" cy="26" r="24" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6 }} />
+        <motion.path d="m15 27 7 7 15-15" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.5 }} />
+      </svg>
+      <h3>{title}</h3>
+      <p>{children}</p>
+    </motion.div>
+  );
+}
+
+function ErrorAlert() {
+  return (
+    <div className="form__alert form__alert--error" role="alert">
+      <strong>Something went wrong.</strong>
+      <span> Please try again or email us at <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.</span>
+    </div>
+  );
+}
 
 /* ==========================================================================
    Company Request Form
    ========================================================================== */
 
-interface CompanyValues {
-  companyName: string;
-  name: string;
-  email: string;
-  need: string;
-  skills: string[];
-  duration: string;
-  startDate: string;
-  budget: string;
-  details: string;
-  _gotcha: string;
-}
+type CompanyValues = { name: string; email: string; company: string; need: string; details: string; _gotcha: string };
 
-type CompanyErrors = Partial<Record<keyof CompanyValues, string>>;
-
-function validateCompany(v: CompanyValues): CompanyErrors {
-  const e: CompanyErrors = {};
-  if (v.companyName.trim().length < 2) e.companyName = 'Please enter your company name.';
+function validateCompany(v: CompanyValues) {
+  const e: Partial<Record<keyof CompanyValues, string>> = {};
   if (v.name.trim().length < 2) e.name = 'Please enter your name.';
-  if (!EMAIL_RE.test(v.email.trim())) e.email = 'Please enter a valid work email address.';
-  if (!v.need) e.need = 'Please select what you need.';
-  if (!v.duration) e.duration = 'Please select expected duration.';
-  if (!v.startDate) e.startDate = 'Please select when to start.';
-  if (v.details.trim().length < 10) e.details = 'Please provide a few details about your project (at least 10 characters).';
+  if (!EMAIL_RE.test(v.email.trim())) e.email = 'Please enter a valid email address.';
+  if (v.details.trim().length < 10) e.details = 'A sentence or two about the project is enough.';
   return e;
 }
 
 function CompanyForm() {
   const toast = useToast();
-  const [v, setV] = useState<CompanyValues>({
-    companyName: '',
-    name: '',
-    email: '',
-    need: '',
-    skills: [],
-    duration: '',
-    startDate: '',
-    budget: '',
-    details: '',
-    _gotcha: '',
-  });
-
+  const [v, setV] = useState<CompanyValues>({ name: '', email: '', company: '', need: '', details: '', _gotcha: '' });
   const [touched, setTouched] = useState<Partial<Record<keyof CompanyValues, boolean>>>({});
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [status, setStatus] = useState<Status>('idle');
 
   const errors = validateCompany(v);
   const err = (k: keyof CompanyValues) => (touched[k] ? errors[k] : undefined);
-
-  const toggleSkill = (skill: string) => {
-    setV((s) => ({
-      ...s,
-      skills: s.skills.includes(skill)
-        ? s.skills.filter((x) => x !== skill)
-        : [...s.skills, skill],
-    }));
+  const set = (k: keyof CompanyValues) => (val: string) => {
+    if (status === 'error') setStatus('idle');
+    setV((s) => ({ ...s, [k]: val }));
   };
+  const blur = (k: keyof CompanyValues) => () => setTouched((t) => ({ ...t, [k]: true }));
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setTouched({
-      companyName: true,
-      name: true,
-      email: true,
-      need: true,
-      duration: true,
-      startDate: true,
-      details: true,
-    });
-
-    const keys = Object.keys(errors) as (keyof CompanyValues)[];
+    setTouched({ name: true, email: true, details: true });
+    const keys = Object.keys(errors);
     if (keys.length) {
       document.getElementById(`cf-${keys[0]}`)?.focus();
       return;
     }
-
-    if (v._gotcha) {
-      setStatus('sent');
-      return;
-    }
+    if (v._gotcha) return setStatus('sent');
 
     setStatus('sending');
     try {
-      const endpoint = CONTACT.companyRequestEndpoint || '[COMPANY REQUEST ENDPOINT]';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          type: 'Company Developer Request',
-          companyName: v.companyName,
-          name: v.name,
-          email: v.email,
-          need: v.need,
-          skills: v.skills,
-          duration: v.duration,
-          startDate: v.startDate,
-          budget: v.budget || 'Not specified',
-          details: v.details,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setStatus('sent');
+      const result = await sendForm(
+        CONTACT.companyRequestEndpoint,
+        { type: 'Developer request', name: v.name, email: v.email, company: v.company, need: v.need || 'Not specified', details: v.details },
+        `Developer request${v.company ? ` from ${v.company}` : ''}`,
+      );
+      setStatus(result === 'sent' ? 'sent' : 'idle');
     } catch {
       setStatus('error');
-      toast(`Unable to send request. Please email us directly at ${CONTACT.email}.`);
+      toast(`Unable to send. Please email us at ${CONTACT.email}.`);
     }
   };
 
@@ -175,250 +226,39 @@ function CompanyForm() {
     <div className="partner-form-wrap">
       <AnimatePresence mode="wait">
         {status !== 'sent' ? (
-          <motion.form
-            key="c-form"
-            className="form partner-form"
-            noValidate
-            onSubmit={handleSubmit}
-            exit={{ opacity: 0, scale: 0.97 }}
-          >
+          <motion.form key="c-form" className="form partner-form" noValidate onSubmit={handleSubmit} exit={{ opacity: 0, scale: 0.97 }}>
             <div className="partner-form__intro">
-              <span className="eyebrow eyebrow--no-counter">Company Request</span>
-              <h3>Request developers for your project</h3>
-              <p>Tell us what you need to build or ship. We match the right specialists and reply with a plan within one business day.</p>
+              <h3>Request developers</h3>
+              <p>Tell us briefly what you’re building. We’ll reply with next steps.</p>
             </div>
 
-            {/* Spam Honeypot */}
-            <div style={{ display: 'none' }} aria-hidden="true">
-              <label htmlFor="cf-gotcha">Do not fill this field</label>
-              <input
-                id="cf-gotcha"
-                type="text"
-                name="_gotcha"
-                tabIndex={-1}
-                autoComplete="off"
-                value={v._gotcha}
-                onChange={(e) => setV((s) => ({ ...s, _gotcha: e.target.value }))}
-              />
+            <div className="hp-field" aria-hidden="true">
+              <label htmlFor="cf-gotcha">Leave this empty</label>
+              <input id="cf-gotcha" type="text" tabIndex={-1} autoComplete="off" value={v._gotcha} onChange={(e) => set('_gotcha')(e.target.value)} />
             </div>
 
             <div className="form__row">
-              <div className={`field${err('companyName') ? ' has-error' : ''}`}>
-                <input
-                  id="cf-companyName"
-                  type="text"
-                  placeholder=" "
-                  autoComplete="organization"
-                  value={v.companyName}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, companyName: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, companyName: true }))}
-                  aria-invalid={!!err('companyName')}
-                  aria-describedby={err('companyName') ? 'e-cf-companyName' : undefined}
-                />
-                <label htmlFor="cf-companyName">Company name *</label>
-                {err('companyName') && <span className="field__err" id="e-cf-companyName">{err('companyName')}</span>}
-              </div>
-
-              <div className={`field${err('name') ? ' has-error' : ''}`}>
-                <input
-                  id="cf-name"
-                  type="text"
-                  placeholder=" "
-                  autoComplete="name"
-                  value={v.name}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, name: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, name: true }))}
-                  aria-invalid={!!err('name')}
-                  aria-describedby={err('name') ? 'e-cf-name' : undefined}
-                />
-                <label htmlFor="cf-name">Your name *</label>
-                {err('name') && <span className="field__err" id="e-cf-name">{err('name')}</span>}
-              </div>
+              <Field id="cf-name" label="Your name" autoComplete="name" value={v.name} onChange={set('name')} onBlur={blur('name')} error={err('name')} />
+              <Field id="cf-email" label="Work email" type="email" autoComplete="email" value={v.email} onChange={set('email')} onBlur={blur('email')} error={err('email')} />
             </div>
+            <Field id="cf-company" label="Company (optional)" autoComplete="organization" value={v.company} onChange={set('company')} />
 
-            <div className="form__row">
-              <div className={`field${err('email') ? ' has-error' : ''}`}>
-                <input
-                  id="cf-email"
-                  type="email"
-                  placeholder=" "
-                  autoComplete="email"
-                  value={v.email}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, email: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-                  aria-invalid={!!err('email')}
-                  aria-describedby={err('email') ? 'e-cf-email' : undefined}
-                />
-                <label htmlFor="cf-email">Work email address *</label>
-                {err('email') && <span className="field__err" id="e-cf-email">{err('email')}</span>}
-              </div>
+            <ChoiceChips id="cf-need" legend="What do you need?" hint="(optional)" options={NEED_OPTIONS} value={v.need} onChange={set('need')} />
 
-              <div className={`field${err('need') ? ' has-error' : ''}`}>
-                <select
-                  id="cf-need"
-                  className={v.need ? 'has-value' : ''}
-                  value={v.need}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, need: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, need: true }))}
-                  aria-invalid={!!err('need')}
-                  aria-describedby={err('need') ? 'e-cf-need' : undefined}
-                >
-                  <option value="" disabled hidden></option>
-                  {NEED_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-                <label htmlFor="cf-need">What you need *</label>
-                {err('need') && <span className="field__err" id="e-cf-need">{err('need')}</span>}
-              </div>
-            </div>
+            <Field id="cf-details" label="About the project" textarea value={v.details} onChange={set('details')} onBlur={blur('details')} error={err('details')} />
 
-            {/* Skills Needed Chips */}
-            <fieldset className="chips chips--skills">
-              <legend>Skills needed <span>(select all that apply)</span></legend>
-              <div className="chips__group">
-                {SKILL_CHIPS.map((chip) => {
-                  const active = v.skills.includes(chip);
-                  return (
-                    <button
-                      type="button"
-                      key={chip}
-                      className={`chip-btn${active ? ' is-active' : ''}`}
-                      onClick={() => toggleSkill(chip)}
-                      aria-pressed={active}
-                    >
-                      <span className="chip-btn__check" aria-hidden="true">{active ? '✓' : '+'}</span>
-                      {chip}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
+            {status === 'error' && <ErrorAlert />}
 
-            <div className="form__row">
-              <div className={`field${err('duration') ? ' has-error' : ''}`}>
-                <select
-                  id="cf-duration"
-                  className={v.duration ? 'has-value' : ''}
-                  value={v.duration}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, duration: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, duration: true }))}
-                  aria-invalid={!!err('duration')}
-                  aria-describedby={err('duration') ? 'e-cf-duration' : undefined}
-                >
-                  <option value="" disabled hidden></option>
-                  {DURATION_OPTIONS.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-                <label htmlFor="cf-duration">Expected duration *</label>
-                {err('duration') && <span className="field__err" id="e-cf-duration">{err('duration')}</span>}
-              </div>
-
-              <div className={`field${err('startDate') ? ' has-error' : ''}`}>
-                <select
-                  id="cf-startDate"
-                  className={v.startDate ? 'has-value' : ''}
-                  value={v.startDate}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, startDate: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, startDate: true }))}
-                  aria-invalid={!!err('startDate')}
-                  aria-describedby={err('startDate') ? 'e-cf-startDate' : undefined}
-                >
-                  <option value="" disabled hidden></option>
-                  {START_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <label htmlFor="cf-startDate">When to start *</label>
-                {err('startDate') && <span className="field__err" id="e-cf-startDate">{err('startDate')}</span>}
-              </div>
-            </div>
-
-            <div className="field">
-              <input
-                id="cf-budget"
-                type="text"
-                placeholder=" "
-                value={v.budget}
-                onChange={(e) => setV((s) => ({ ...s, budget: e.target.value }))}
-              />
-              <label htmlFor="cf-budget">Budget range (optional, e.g. $5k - $15k, or Hourly)</label>
-            </div>
-
-            <div className={`field${err('details') ? ' has-error' : ''}`}>
-              <textarea
-                id="cf-details"
-                rows={4}
-                placeholder=" "
-                value={v.details}
-                onChange={(e) => {
-                  if (status === 'error') setStatus('idle');
-                  setV((s) => ({ ...s, details: e.target.value }));
-                }}
-                onBlur={() => setTouched((t) => ({ ...t, details: true }))}
-                aria-invalid={!!err('details')}
-                aria-describedby={err('details') ? 'e-cf-details' : undefined}
-              />
-              <label htmlFor="cf-details">Project details (what you are building or trying to solve) *</label>
-              {err('details') && <span className="field__err" id="e-cf-details">{err('details')}</span>}
-            </div>
-
-            {status === 'error' && (
-              <div className="form__alert form__alert--error" role="alert">
-                <strong>Submission failed.</strong>
-                <span> Please try again or reach out directly to <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className={`btn btn--primary btn--block${status === 'sending' ? ' is-loading' : ''}`}
-              disabled={status === 'sending'}
-            >
-              <span className="btn__label">{status === 'sending' ? 'Submitting request…' : 'Submit developer request'}</span>
+            <button type="submit" className={`btn btn--primary btn--block${status === 'sending' ? ' is-loading' : ''}`} disabled={status === 'sending'}>
+              <span className="btn__label">{status === 'sending' ? 'Sending…' : 'Send request'}</span>
               <span className="btn__spinner" aria-hidden="true" />
             </button>
-            <p className="form__note">
-              We respond with a matched plan and quote within one business day. NDA available on request.
-            </p>
+            <p className="form__note">{CONTACT.responseTime} NDA available on request.</p>
           </motion.form>
         ) : (
-          <motion.div
-            key="c-success"
-            className="form form__success"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            role="status"
-          >
-            <svg className="check" viewBox="0 0 52 52" aria-hidden="true">
-              <motion.circle cx="26" cy="26" r="24" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6 }} />
-              <motion.path d="m15 27 7 7 15-15" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.5 }} />
-            </svg>
-            <h3>Request Received!</h3>
-            <p>
-              Thanks, {v.name.trim().split(' ')[0]}. We have received your requirements for {v.companyName.trim()} and will get back to you within one business day.
-            </p>
-          </motion.div>
+          <SuccessCard title="Request received">
+            Thanks, {v.name.trim().split(' ')[0]}. {CONTACT.responseTime}
+          </SuccessCard>
         )}
       </AnimatePresence>
     </div>
@@ -429,94 +269,51 @@ function CompanyForm() {
    Developer Application Form
    ========================================================================== */
 
-interface DevValues {
-  fullName: string;
-  email: string;
-  skill: string;
-  experience: string;
-  portfolio: string;
-  availability: string;
-  message: string;
-  _gotcha: string;
-}
+type DevValues = { name: string; email: string; skill: string; portfolio: string; message: string; _gotcha: string };
 
-type DevErrors = Partial<Record<keyof DevValues, string>>;
-
-function validateDev(v: DevValues): DevErrors {
-  const e: DevErrors = {};
-  if (v.fullName.trim().length < 2) e.fullName = 'Please enter your full name.';
+function validateDev(v: DevValues) {
+  const e: Partial<Record<keyof DevValues, string>> = {};
+  if (v.name.trim().length < 2) e.name = 'Please enter your name.';
   if (!EMAIL_RE.test(v.email.trim())) e.email = 'Please enter a valid email address.';
-  if (!v.skill) e.skill = 'Please select your primary skill.';
-  if (!v.experience.trim()) e.experience = 'Please indicate your years of experience.';
-  if (!v.availability) e.availability = 'Please select your availability.';
-  if (v.message.trim().length < 10) e.message = 'Please provide a short message (at least 10 characters).';
+  if (!v.skill) e.skill = 'Please choose your main skill.';
   return e;
 }
 
 function DeveloperForm() {
   const toast = useToast();
-  const [v, setV] = useState<DevValues>({
-    fullName: '',
-    email: '',
-    skill: '',
-    experience: '',
-    portfolio: '',
-    availability: '',
-    message: '',
-    _gotcha: '',
-  });
-
+  const [v, setV] = useState<DevValues>({ name: '', email: '', skill: '', portfolio: '', message: '', _gotcha: '' });
   const [touched, setTouched] = useState<Partial<Record<keyof DevValues, boolean>>>({});
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [status, setStatus] = useState<Status>('idle');
 
   const errors = validateDev(v);
   const err = (k: keyof DevValues) => (touched[k] ? errors[k] : undefined);
+  const set = (k: keyof DevValues) => (val: string) => {
+    if (status === 'error') setStatus('idle');
+    setV((s) => ({ ...s, [k]: val }));
+  };
+  const blur = (k: keyof DevValues) => () => setTouched((t) => ({ ...t, [k]: true }));
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setTouched({
-      fullName: true,
-      email: true,
-      skill: true,
-      experience: true,
-      availability: true,
-      message: true,
-    });
-
-    const keys = Object.keys(errors) as (keyof DevValues)[];
+    setTouched({ name: true, email: true, skill: true });
+    const keys = Object.keys(errors);
     if (keys.length) {
       document.getElementById(`df-${keys[0]}`)?.focus();
       return;
     }
-
-    if (v._gotcha) {
-      setStatus('sent');
-      return;
-    }
+    if (v._gotcha) return setStatus('sent');
 
     setStatus('sending');
     try {
-      const endpoint = CONTACT.partnerFormEndpoint || '[FORM ENDPOINT, e.g. Formspree URL or my n8n webhook URL]';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          type: 'Developer Application',
-          fullName: v.fullName,
-          email: v.email,
-          skill: v.skill,
-          experience: v.experience,
-          portfolio: v.portfolio,
-          availability: v.availability,
-          message: v.message,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setStatus('sent');
+      const result = await sendForm(
+        CONTACT.partnerFormEndpoint,
+        { type: 'Developer application', name: v.name, email: v.email, skill: v.skill, portfolio: v.portfolio, message: v.message },
+        `Developer application: ${v.skill} (${v.name})`,
+      );
+      setStatus(result === 'sent' ? 'sent' : 'idle');
     } catch {
       setStatus('error');
-      toast(`Unable to send application. Please email us directly at ${CONTACT.email}.`);
+      toast(`Unable to send. Please email us at ${CONTACT.email}.`);
     }
   };
 
@@ -524,205 +321,39 @@ function DeveloperForm() {
     <div className="partner-form-wrap">
       <AnimatePresence mode="wait">
         {status !== 'sent' ? (
-          <motion.form
-            key="df-form"
-            className="form partner-form"
-            noValidate
-            onSubmit={handleSubmit}
-            exit={{ opacity: 0, scale: 0.97 }}
-          >
+          <motion.form key="d-form" className="form partner-form" noValidate onSubmit={handleSubmit} exit={{ opacity: 0, scale: 0.97 }}>
             <div className="partner-form__intro">
-              <span className="eyebrow eyebrow--no-counter">Developer Network</span>
-              <h3>Are you a developer? Join our partner network.</h3>
-              <p>We partner with high-calibre senior developers, designers, and automation specialists for client engagements.</p>
+              <h3>Join our developer network</h3>
+              <p>Share a few details and a link to your work. We’ll be in touch when there’s a good fit.</p>
             </div>
 
-            {/* Spam Honeypot */}
-            <div style={{ display: 'none' }} aria-hidden="true">
-              <label htmlFor="df-gotcha">Do not fill this field</label>
-              <input
-                id="df-gotcha"
-                type="text"
-                name="_gotcha"
-                tabIndex={-1}
-                autoComplete="off"
-                value={v._gotcha}
-                onChange={(e) => setV((s) => ({ ...s, _gotcha: e.target.value }))}
-              />
+            <div className="hp-field" aria-hidden="true">
+              <label htmlFor="df-gotcha">Leave this empty</label>
+              <input id="df-gotcha" type="text" tabIndex={-1} autoComplete="off" value={v._gotcha} onChange={(e) => set('_gotcha')(e.target.value)} />
             </div>
 
             <div className="form__row">
-              <div className={`field${err('fullName') ? ' has-error' : ''}`}>
-                <input
-                  id="df-fullName"
-                  type="text"
-                  placeholder=" "
-                  autoComplete="name"
-                  value={v.fullName}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, fullName: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, fullName: true }))}
-                  aria-invalid={!!err('fullName')}
-                  aria-describedby={err('fullName') ? 'e-df-fullName' : undefined}
-                />
-                <label htmlFor="df-fullName">Full name *</label>
-                {err('fullName') && <span className="field__err" id="e-df-fullName">{err('fullName')}</span>}
-              </div>
-
-              <div className={`field${err('email') ? ' has-error' : ''}`}>
-                <input
-                  id="df-email"
-                  type="email"
-                  placeholder=" "
-                  autoComplete="email"
-                  value={v.email}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, email: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-                  aria-invalid={!!err('email')}
-                  aria-describedby={err('email') ? 'e-df-email' : undefined}
-                />
-                <label htmlFor="df-email">Email address *</label>
-                {err('email') && <span className="field__err" id="e-df-email">{err('email')}</span>}
-              </div>
+              <Field id="df-name" label="Your name" autoComplete="name" value={v.name} onChange={set('name')} onBlur={blur('name')} error={err('name')} />
+              <Field id="df-email" label="Email" type="email" autoComplete="email" value={v.email} onChange={set('email')} onBlur={blur('email')} error={err('email')} />
             </div>
 
-            <div className="form__row">
-              <div className={`field${err('skill') ? ' has-error' : ''}`}>
-                <select
-                  id="df-skill"
-                  className={v.skill ? 'has-value' : ''}
-                  value={v.skill}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, skill: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, skill: true }))}
-                  aria-invalid={!!err('skill')}
-                  aria-describedby={err('skill') ? 'e-df-skill' : undefined}
-                >
-                  <option value="" disabled hidden></option>
-                  {DEV_SKILLS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <label htmlFor="df-skill">Primary skill *</label>
-                {err('skill') && <span className="field__err" id="e-df-skill">{err('skill')}</span>}
-              </div>
+            <ChoiceChips id="df-skill" legend="Main skill" options={DEV_SKILLS} value={v.skill} onChange={(val) => { set('skill')(val); setTouched((t) => ({ ...t, skill: true })); }} error={err('skill')} />
 
-              <div className={`field${err('experience') ? ' has-error' : ''}`}>
-                <input
-                  id="df-experience"
-                  type="text"
-                  placeholder=" "
-                  value={v.experience}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, experience: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, experience: true }))}
-                  aria-invalid={!!err('experience')}
-                  aria-describedby={err('experience') ? 'e-df-experience' : undefined}
-                />
-                <label htmlFor="df-experience">Years of experience *</label>
-                {err('experience') && <span className="field__err" id="e-df-experience">{err('experience')}</span>}
-              </div>
-            </div>
+            <Field id="df-portfolio" label="Portfolio, GitHub or LinkedIn (optional)" type="url" autoComplete="url" value={v.portfolio} onChange={set('portfolio')} />
+            <Field id="df-message" label="Anything else we should know? (optional)" textarea value={v.message} onChange={set('message')} />
 
-            <div className="form__row">
-              <div className="field">
-                <input
-                  id="df-portfolio"
-                  type="url"
-                  placeholder=" "
-                  value={v.portfolio}
-                  onChange={(e) => setV((s) => ({ ...s, portfolio: e.target.value }))}
-                />
-                <label htmlFor="df-portfolio">Portfolio or GitHub link (optional)</label>
-              </div>
+            {status === 'error' && <ErrorAlert />}
 
-              <div className={`field${err('availability') ? ' has-error' : ''}`}>
-                <select
-                  id="df-availability"
-                  className={v.availability ? 'has-value' : ''}
-                  value={v.availability}
-                  onChange={(e) => {
-                    if (status === 'error') setStatus('idle');
-                    setV((s) => ({ ...s, availability: e.target.value }));
-                  }}
-                  onBlur={() => setTouched((t) => ({ ...t, availability: true }))}
-                  aria-invalid={!!err('availability')}
-                  aria-describedby={err('availability') ? 'e-df-availability' : undefined}
-                >
-                  <option value="" disabled hidden></option>
-                  {AVAILABILITY.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-                <label htmlFor="df-availability">Availability *</label>
-                {err('availability') && <span className="field__err" id="e-df-availability">{err('availability')}</span>}
-              </div>
-            </div>
-
-            <div className={`field${err('message') ? ' has-error' : ''}`}>
-              <textarea
-                id="df-message"
-                rows={4}
-                placeholder=" "
-                value={v.message}
-                onChange={(e) => {
-                  if (status === 'error') setStatus('idle');
-                  setV((s) => ({ ...s, message: e.target.value }));
-                }}
-                onBlur={() => setTouched((t) => ({ ...t, message: true }))}
-                aria-invalid={!!err('message')}
-                aria-describedby={err('message') ? 'e-df-message' : undefined}
-              />
-              <label htmlFor="df-message">Short message (tell us about your best work) *</label>
-              {err('message') && <span className="field__err" id="e-df-message">{err('message')}</span>}
-            </div>
-
-            {status === 'error' && (
-              <div className="form__alert form__alert--error" role="alert">
-                <strong>Submission failed.</strong>
-                <span> Please try again or reach out directly to <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className={`btn btn--primary btn--block${status === 'sending' ? ' is-loading' : ''}`}
-              disabled={status === 'sending'}
-            >
-              <span className="btn__label">{status === 'sending' ? 'Submitting application…' : 'Submit partner application'}</span>
+            <button type="submit" className={`btn btn--primary btn--block${status === 'sending' ? ' is-loading' : ''}`} disabled={status === 'sending'}>
+              <span className="btn__label">{status === 'sending' ? 'Sending…' : 'Apply to join'}</span>
               <span className="btn__spinner" aria-hidden="true" />
             </button>
-            <p className="form__note">
-              We respect your privacy. Your information is only used for partner onboarding.
-            </p>
+            <p className="form__note">Your details are only used to review your application.</p>
           </motion.form>
         ) : (
-          <motion.div
-            key="df-success"
-            className="form form__success"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            role="status"
-          >
-            <svg className="check" viewBox="0 0 52 52" aria-hidden="true">
-              <motion.circle cx="26" cy="26" r="24" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6 }} />
-              <motion.path d="m15 27 7 7 15-15" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.4, delay: 0.5 }} />
-            </svg>
-            <h3>Application Received!</h3>
-            <p>
-              Thanks for applying, {v.fullName.trim().split(' ')[0]}. We review partner applications within 2 business days and will be in touch.
-            </p>
-          </motion.div>
+          <SuccessCard title="Application received">
+            Thanks, {v.name.trim().split(' ')[0]}. We’ll review your details and get back to you.
+          </SuccessCard>
         )}
       </AnimatePresence>
     </div>
@@ -796,8 +427,8 @@ export default function PartnerPage() {
 
         {/* 2. HOW WE CAN HELP */}
         <section className="section partner-help" id="how-we-help">
-          <div className="container">
-            <div className="section__head">
+          <div className="container help-layout">
+            <div className="help-layout__intro">
               <Reveal as="p" className="eyebrow eyebrow--no-counter">How we can help</Reveal>
               <Reveal as="h2" className="section__title" delay={0.05}>
                 Flexible technical capacity for any stage.
@@ -807,39 +438,17 @@ export default function PartnerPage() {
               </Reveal>
             </div>
 
-            <div className="help-grid">
-              <Reveal className="help-card" delay={0.05}>
-                <div className="help-card__num">01</div>
-                <h3>Extra developers for a deadline</h3>
-                <p>
-                  Quickly augment your existing team with senior engineers who hit the ground running to ship critical releases on time.
-                </p>
-              </Reveal>
-
-              <Reveal className="help-card" delay={0.1}>
-                <div className="help-card__num">02</div>
-                <h3>A small team for a new product</h3>
-                <p>
-                  An assembled product team covering frontend, backend, and UI design to take your new software from brief to live deployment.
-                </p>
-              </Reveal>
-
-              <Reveal className="help-card" delay={0.15}>
-                <div className="help-card__num">03</div>
-                <h3>Specialists for one part (mobile, backend, AI, automation)</h3>
-                <p>
-                  Targeted expertise for complex features—whether native iOS/Android mobile apps, high-throughput APIs, AI integration, or workflow automation.
-                </p>
-              </Reveal>
-
-              <Reveal className="help-card" delay={0.2}>
-                <div className="help-card__num">04</div>
-                <h3>Ongoing monthly support</h3>
-                <p>
-                  Reliable engineering capacity on a monthly retainer for iterative improvements, monitoring, security updates, and maintenance.
-                </p>
-              </Reveal>
-            </div>
+            <ol className="help-list">
+              {HELP_OPTIONS.map((o, i) => (
+                <Reveal as="li" className="help-row" key={o.title} delay={i * 0.06}>
+                  <span className="help-row__num">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="help-row__body">
+                    <h3>{o.title}</h3>
+                    <p>{o.text}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </ol>
           </div>
         </section>
 
@@ -856,46 +465,40 @@ export default function PartnerPage() {
               </Reveal>
             </div>
 
-            <ol className="p-steps">
-              <Reveal as="li" className="p-step" delay={0.05}>
-                <span className="p-step__num">01</span>
-                <div className="p-step__content">
-                  <h3>Tell us what you need</h3>
-                  <p>Share your scope, required technologies, and timeline. No commitment required.</p>
-                </div>
-              </Reveal>
-
-              <Reveal as="li" className="p-step" delay={0.1}>
-                <span className="p-step__num">02</span>
-                <div className="p-step__content">
-                  <h3>We share a clear plan and quote</h3>
-                  <p>We review your requirements and provide a structured milestone plan with a clear fixed quote.</p>
-                </div>
-              </Reveal>
-
-              <Reveal as="li" className="p-step" delay={0.15}>
-                <span className="p-step__num">03</span>
-                <div className="p-step__content">
-                  <h3>We match and start the work</h3>
-                  <p>We assign the right developers tailored to your stack and begin sprint execution immediately.</p>
-                </div>
-              </Reveal>
-
-              <Reveal as="li" className="p-step" delay={0.2}>
-                <span className="p-step__num">04</span>
-                <div className="p-step__content">
-                  <h3>Regular demos and updates until delivery</h3>
-                  <p>You see working software every week with progress updates until final handover and launch.</p>
-                </div>
-              </Reveal>
-            </ol>
+            <div className="timeline">
+              <div className="timeline__track" aria-hidden="true">
+                <motion.span
+                  className="timeline__fill"
+                  initial={{ scaleX: 0, scaleY: 0 }}
+                  whileInView={{ scaleX: 1, scaleY: 1 }}
+                  viewport={{ once: true, margin: '0px 0px -20% 0px' }}
+                  transition={{ duration: 1.6, ease: [0.65, 0, 0.35, 1] }}
+                />
+              </div>
+              <ol className="timeline__steps">
+                {PROCESS_STEPS.map((st, i) => (
+                  <motion.li
+                    className="timeline__step"
+                    key={st.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: '0px 0px -20% 0px' }}
+                    transition={{ duration: 0.7, delay: 0.25 + i * 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <span className="timeline__node">{String(i + 1).padStart(2, '0')}</span>
+                    <h3>{st.title}</h3>
+                    <p>{st.text}</p>
+                  </motion.li>
+                ))}
+              </ol>
+            </div>
           </div>
         </section>
 
         {/* 4. WHY COMPANIES WORK WITH US */}
         <section className="section partner-why" id="why-us">
           <div className="container">
-            <div className="section__head">
+            <div className="section__head section__head--light">
               <Reveal as="p" className="eyebrow eyebrow--no-counter">Why companies work with us</Reveal>
               <Reveal as="h2" className="section__title" delay={0.05}>
                 Dependable delivery, zero guesswork.
@@ -905,52 +508,15 @@ export default function PartnerPage() {
               </Reveal>
             </div>
 
-            <div className="why-grid">
-              <Reveal className="why-card" delay={0.05}>
-                <div className="why-card__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v12M15 9.5a3.5 3.5 0 0 0-7 0c0 4 7 2 7 6a3.5 3.5 0 0 1-7 0" />
-                  </svg>
-                </div>
-                <h3>Clear fixed quotes</h3>
-                <p>Agreed scopes and fixed quotes upfront. You know exactly what you are paying for with no surprise fees.</p>
-              </Reveal>
-
-              <Reveal className="why-card" delay={0.1}>
-                <div className="why-card__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                </div>
-                <h3>NDA available on request</h3>
-                <p>Your intellectual property, product ideas, and proprietary code are strictly protected from day one.</p>
-              </Reveal>
-
-              <Reveal className="why-card" delay={0.15}>
-                <div className="why-card__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="2" y="3" width="20" height="14" rx="2" />
-                    <line x1="8" y1="21" x2="16" y2="21" />
-                    <line x1="12" y1="17" x2="12" y2="21" />
-                  </svg>
-                </div>
-                <h3>Regular demos</h3>
-                <p>Weekly progress demos so you can review real working software and give feedback before code reaches production.</p>
-              </Reveal>
-
-              <Reveal className="why-card" delay={0.2}>
-                <div className="why-card__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </div>
-                <h3>One point of contact</h3>
-                <p>A single technical delivery lead manages sprint milestones and communication so you always have direct answers.</p>
-              </Reveal>
-            </div>
+            <ul className="why-list">
+              {WHY_POINTS.map((w, i) => (
+                <Reveal as="li" className="why-item" key={w.title} delay={i * 0.08}>
+                  <svg className="why-item__icon" viewBox="0 0 24 24" aria-hidden="true">{w.icon}</svg>
+                  <h3>{w.title}</h3>
+                  <p>{w.text}</p>
+                </Reveal>
+              ))}
+            </ul>
           </div>
         </section>
 
