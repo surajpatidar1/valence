@@ -212,7 +212,16 @@ function CompanyForm() {
     try {
       const result = await sendForm(
         CONTACT.companyRequestEndpoint,
-        { type: 'Developer request', name: v.name, email: v.email, company: v.company, need: v.need || 'Not specified', details: v.details },
+        {
+          type: 'Developer request',
+          name: v.name,
+          email: v.email,
+          company: v.company,
+          need: v.need || 'Not specified',
+          details: v.details,
+          message: `[Company: ${v.company || 'N/A'} | Need: ${v.need || 'Not specified'}]\n\n${v.details}`,
+          topic: 'Developers',
+        },
         `Developer request${v.company ? ` from ${v.company}` : ''}`,
       );
       setStatus(result === 'sent' ? 'sent' : 'idle');

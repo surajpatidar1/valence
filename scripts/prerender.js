@@ -58,6 +58,16 @@ async function prerender() {
     console.log('✓ Injected pre-rendered HTML into dist/reviews/index.html');
   }
 
+  console.log('Pre-rendering /admin (admin/index.html)...');
+  const adminHtml = render('/admin');
+  const distAdminPath = path.resolve(rootDir, 'dist/admin/index.html');
+  if (fs.existsSync(distAdminPath)) {
+    let html = fs.readFileSync(distAdminPath, 'utf-8');
+    html = injectRoot(html, adminHtml);
+    fs.writeFileSync(distAdminPath, html, 'utf-8');
+    console.log('✓ Injected pre-rendered HTML into dist/admin/index.html');
+  }
+
   // Clean up dist-ssr
   fs.rmSync(path.resolve(rootDir, 'dist-ssr'), { recursive: true, force: true });
   console.log('✓ Cleaned up dist-ssr');
