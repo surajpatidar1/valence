@@ -10,6 +10,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         partners: resolve(__dirname, 'partners/index.html'),
         reviews: resolve(__dirname, 'reviews/index.html'),
+        admin: resolve(__dirname, 'admin/index.html'),
       },
     },
   },

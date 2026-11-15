@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 import Logo from './Logo';
 import MagneticButton from './MagneticButton';
 import { CONTACT } from '../data/contact';
-import { HAS_APPROVED_REVIEWS } from '../data/reviews';
 
 const BASE_LINKS = [
   { href: '#services', label: 'Services' },
   { href: '#work', label: 'Work' },
+  { href: '#testimonials', label: 'Reviews' },
   { href: '#process', label: 'Process' },
   { href: '#about', label: 'About' },
   { href: '#faq', label: 'FAQ' },
@@ -21,9 +21,7 @@ export default function Header({
   isReviews?: boolean;
 }) {
   const isSubpage = isPartner || isReviews;
-  const links = HAS_APPROVED_REVIEWS
-    ? [...BASE_LINKS, { href: '/reviews', label: 'Reviews' }]
-    : BASE_LINKS;
+  const links = BASE_LINKS;
 
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = useState(false);

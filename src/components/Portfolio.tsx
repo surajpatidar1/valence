@@ -1,41 +1,39 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Reveal from './Reveal';
 
-interface CaseStudy {
-  id: string;
-  isDemo?: boolean;
+interface PortfolioItem {
+  id: number;
   title: string;
-  problem: string;
-  solution: string;
-  metric: string;
-  tools: string[];
-  category: 'Automation' | 'Web' | 'App';
+  category: string;
+  client?: string | null;
+  year?: string | null;
+  summary: string;
+  solution?: string | null;
+  metric?: string | null;
+  tags: string[];
+  image?: string | null;
+  url?: string | null;
+  isFeatured: boolean;
+  status: 'Published' | 'Draft' | 'Archived';
+  order: number;
+  createdAt: string;
 }
 
-const CASE_STUDIES: CaseStudy[] = [
-  {
-    id: 'case-1',
-    isDemo: true,
-    title: '[CASE STUDY 1]',
-    problem: 'Manual multi-step order entry and verification delayed customer fulfillments and created inventory discrepancies.',
-    solution: 'Designed an automated event-driven sync pipeline linking e-commerce checkouts directly to ERP, invoicing, and logistics.',
-    metric: '85% decrease in manual processing time with zero sync errors',
-    tools: ['n8n', 'Node.js', 'PostgreSQL', 'Webhooks', 'REST APIs'],
-    category: 'Automation',
-  },
-  {
-    id: 'case-2',
-    isDemo: false,
-    title: '[CASE STUDY 2]',
-    problem: 'Client appointments and quotes required protracted back-and-forth emails, causing high lead drop-off.',
-    solution: 'Engineered a modern self-service booking and customer intake portal with instant calendar validation and automated reminders.',
-    metric: '3.5x faster customer onboarding with 40% higher booking completion',
-    tools: ['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Stripe'],
-    category: 'Web',
-  },
-];
+function CardMockup({ type, image }: { type: string; image?: string | null }) {
+  if (image) {
+    return (
+      <div className="proof-mock-img" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+        <img
+          src={image}
+          alt=""
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      </div>
+    );
+  }
 
-function CardMockup({ type }: { type: 'Automation' | 'Web' }) {
   if (type === 'Automation') {
     return (
       <div className="proof-mock" aria-hidden="true">
@@ -55,6 +53,7 @@ function CardMockup({ type }: { type: 'Automation' | 'Web' }) {
       </div>
     );
   }
+
   return (
     <div className="mock" aria-hidden="true">
       <div className="mock__browser">
@@ -70,8 +69,25 @@ function CardMockup({ type }: { type: 'Automation' | 'Web' }) {
 }
 
 export default function Portfolio() {
+  const [projects, setProjects] = useState<PortfolioItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch('http://localhost:7001/portfolio/published')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.portfolios)) {
+          setProjects(data.portfolios);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, []);
+
+  const hasProjects = projects.length > 0;
+
   return (
-    <section className="section work" id="work">
+    <section className="section work" id="work" aria-label="Portfolio & Case Studies">
       <div className="container">
         <div className="section__head">
           <Reveal as="p" className="eyebrow eyebrow--no-counter">Work</Reveal>
@@ -83,58 +99,110 @@ export default function Portfolio() {
           </Reveal>
         </div>
 
-        <div className="case-grid">
-          {CASE_STUDIES.map((cs, i) => (
-            <motion.article
-              key={cs.id}
-              className="case-card"
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <div className="case-card__media">
-                <CardMockup type={cs.category === 'Automation' ? 'Automation' : 'Web'} />
-                {cs.isDemo && <span className="case-card__badge">Demo project</span>}
-              </div>
-
-              <div className="case-card__body">
-                <div className="case-card__header">
-                  <h3 className="case-card__title">{cs.title}</h3>
-                  <span className="case-card__cat">{cs.category}</span>
+        {hasProjects ? (
+          <div className="case-grid">
+            {projects.map((p, i) => (
+              <motion.article
+                key={p.id}
+                className="case-card"
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="case-card__media">
+                  <CardMockup type={p.category} image={p.image} />
+                  {p.isFeatured && <span className="case-card__badge">Featured</span>}
                 </div>
 
-                <dl className="case-card__details">
-                  <div className="case-card__item">
-                    <dt>Problem</dt>
-                    <dd>{cs.problem}</dd>
+                <div className="case-card__body">
+                  <div className="case-card__header">
+                    <div>
+                      <h3 className="case-card__title">{p.title}</h3>
+                      {p.client && (
+                        <span style={{ fontSize: 13, color: '#716c60', display: 'block', marginTop: 2 }}>
+                          Client: {p.client} {p.year ? `(${p.year})` : ''}
+                        </span>
+                      )}
+                    </div>
+                    <span className="case-card__cat">{p.category}</span>
                   </div>
-                  <div className="case-card__item">
-                    <dt>Solution</dt>
-                    <dd>{cs.solution}</dd>
-                  </div>
-                  <div className="case-card__item case-card__item--metric">
-                    <dt>Result metric</dt>
-                    <dd className="case-card__metric-val">{cs.metric}</dd>
-                  </div>
-                </dl>
 
-                <div className="case-card__footer">
-                  <span className="case-card__tools-label">Tools used:</span>
-                  <ul className="tags">
-                    {cs.tools.map((t) => (
-                      <li key={t}>{t}</li>
-                    ))}
-                  </ul>
+                  <dl className="case-card__details">
+                    <div className="case-card__item">
+                      <dt>Problem</dt>
+                      <dd>{p.summary}</dd>
+                    </div>
+
+                    {p.solution && (
+                      <div className="case-card__item">
+                        <dt>Solution</dt>
+                        <dd>{p.solution}</dd>
+                      </div>
+                    )}
+
+                    {p.metric && (
+                      <div className="case-card__item case-card__item--metric">
+                        <dt>Result metric</dt>
+                        <dd className="case-card__metric-val">{p.metric}</dd>
+                      </div>
+                    )}
+                  </dl>
+
+                  {p.tags && p.tags.length > 0 && (
+                    <div className="case-card__footer">
+                      <span className="case-card__tools-label">Tools used:</span>
+                      <ul className="tags">
+                        {p.tags.map((t) => (
+                          <li key={t}>{t}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {p.url && (
+                    <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid #e5d6bf' }}>
+                      <a
+                        href={p.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: '#173d32',
+                          textDecoration: 'underline',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        Visit live project ↗
+                      </a>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </motion.article>
-          ))}
-        </div>
+              </motion.article>
+            ))}
+          </div>
+        ) : loaded ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f7f2ea', borderRadius: 12, border: '1px solid #e5d6bf', marginTop: 20 }}>
+            <p style={{ margin: 0, fontSize: 16, color: '#102b23', fontWeight: 600 }}>
+              Recent case studies are currently being curated.
+            </p>
+            <p style={{ margin: '8px 0 20px', fontSize: 13, color: '#716c60' }}>
+              Publish projects directly from the Admin Panel to display them live in this section.
+            </p>
+            <a href="/#contact" className="btn btn--primary" style={{ display: 'inline-flex', padding: '10px 24px', fontSize: 13, textDecoration: 'none' }}>
+              Start a project with Valance →
+            </a>
+          </div>
+        ) : null}
 
-        <Reveal className="work__coming-soon" delay={0.2}>
-          <p>More case studies coming soon.</p>
-        </Reveal>
+        {hasProjects && (
+          <Reveal className="work__coming-soon" delay={0.2}>
+            <p>More case studies added regularly via the Admin Panel.</p>
+          </Reveal>
+        )}
       </div>
     </section>
   );

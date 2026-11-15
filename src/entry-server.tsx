@@ -2,8 +2,13 @@ import { renderToString } from 'react-dom/server';
 import App from './App';
 import PartnerPage from './components/PartnerPage';
 import ReviewsPage from './components/ReviewsPage';
+import AdminPage from './components/AdminPage';
 
 export function render(url = '/') {
+  const isAdmin = url === '/admin' || url.startsWith('/admin/') || url === '/admin.html';
+  if (isAdmin) {
+    return renderToString(<AdminPage />);
+  }
   const isPartner = url === '/partners' || url.startsWith('/partners/') || url === '/partners.html';
   if (isPartner) {
     return renderToString(<PartnerPage />);

@@ -17,13 +17,7 @@ export default function Hero({ ready }: { ready: boolean }) {
 
   return (
     <section className="hero">
-      <div className="container">
-        <motion.div className="hero__meta" {...fadeUp(0)}>
-          <span>Web, app &amp; AI development for growing businesses</span>
-          <a href="/partners" className="hero__hire-link">
-            <span>Need extra developers or a team?</span> <b>Hire developers →</b>
-          </a>
-        </motion.div>
+      <div className="container"> 
 
         <h1 className="hero__title">
           {['We take the busywork', 'out of your business.'].map((line, i) => (
