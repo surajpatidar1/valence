@@ -55,13 +55,122 @@ interface PortfolioItem {
   createdAt: string;
 }
 
-function AdminContent() {
+export interface AdminUser {
+  id: number;
+  email: string;
+  firstname: string;
+  lastname: string;
+  profileImage?: string | null;
+  status?: string;
+  createdAt?: string;
+}
+
+function ValanceAdminLogo({ variant = 'header' }: { variant?: 'header' | 'login' }) {
+  if (variant === 'login') {
+    return (
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <a
+          href="/"
+          style={{
+            display: 'inline-flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textDecoration: 'none',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "'Pinyon Script', 'Alex Brush', cursive",
+              fontSize: 64,
+              color: '#173d32',
+              lineHeight: 1,
+              display: 'inline-block',
+              letterSpacing: '0.02em',
+              textShadow: '0 2px 14px rgba(185, 154, 101, 0.25)',
+              transform: 'rotate(-1.5deg)',
+            }}
+          >
+            Valance
+          </span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 4,
+            }}
+          >
+            <span style={{ height: 1, width: 24, background: '#b99a65', opacity: 0.5 }} />
+            <span
+              style={{
+                fontFamily: 'Plus Jakarta Sans, Inter, sans-serif',
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.16em',
+                color: '#b99a65',
+                textTransform: 'uppercase',
+              }}
+            >
+              Admin Portal
+            </span>
+            <span style={{ height: 1, width: 24, background: '#b99a65', opacity: 0.5 }} />
+          </div>
+        </a>
+        <p style={{ margin: '8px 0 0', fontSize: 13, color: '#716c60', fontWeight: 500 }}>
+          Sign in to access approvals and system data
+        </p>
+      </div>
+    );
+  }
+
+  // Header Variant: Luxury Calligraphy Brand
+  return (
+    <a
+      href="/admin"
+      className="admin-brand-link"
+      title="Valance Admin"
+    >
+      <span className="admin-brand-calligraphy">
+        Valance
+      </span>
+      <span className="admin-brand-badge">
+        Admin
+      </span>
+    </a>
+  );
+}
+
+function AdminContent({
+  adminUser: _adminUser,
+  authToken,
+  onLogout,
+}: {
+  adminUser: AdminUser | null;
+  authToken: string | null;
+  onLogout: () => void;
+}) {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<'reviews' | 'developers' | 'contacts' | 'portfolios'>('reviews');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [isServerLive, setIsServerLive] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const apiFetch = async (url: string, init?: RequestInit) => {
+    const headers: Record<string, string> = {
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      ...((init?.headers as Record<string, string>) || {}),
+    };
+    const res = await fetch(url, {
+      ...init,
+      credentials: 'include',
+      headers,
+    });
+    if (res.status === 401) {
+      toast('Session expired. Please log in again.');
+      onLogout();
+    }
+    return res;
+  };
 
   // Pure live backend state - zero fake / mock data
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -92,7 +201,7 @@ function AdminContent() {
     let serverOk = false;
     try {
       // 1. Fetch reviews
-      const revRes = await fetch(`${API_BASE}/review`).catch(() => null);
+      const revRes = await apiFetch(`${API_BASE}/review`).catch(() => null);
       if (revRes && revRes.ok) {
         serverOk = true;
         const revJson = await revRes.json();
@@ -100,7 +209,7 @@ function AdminContent() {
       }
 
       // 2. Fetch developers
-      const devRes = await fetch(`${API_BASE}/developer`).catch(() => null);
+      const devRes = await apiFetch(`${API_BASE}/developer`).catch(() => null);
       if (devRes && devRes.ok) {
         serverOk = true;
         const devJson = await devRes.json();
@@ -108,7 +217,7 @@ function AdminContent() {
       }
 
       // 3. Fetch contacts
-      const conRes = await fetch(`${API_BASE}/contact`).catch(() => null);
+      const conRes = await apiFetch(`${API_BASE}/contact`).catch(() => null);
       if (conRes && conRes.ok) {
         serverOk = true;
         const conJson = await conRes.json();
@@ -116,16 +225,14 @@ function AdminContent() {
       }
 
       // 4. Fetch portfolios
-      const portRes = await fetch(`${API_BASE}/portfolio`).catch(() => null);
+      const portRes = await apiFetch(`${API_BASE}/portfolio`).catch(() => null);
       if (portRes && portRes.ok) {
         serverOk = true;
         const portJson = await portRes.json();
         setPortfolios(Array.isArray(portJson.portfolios) ? portJson.portfolios : []);
       }
 
-      setIsServerLive(serverOk);
     } catch {
-      setIsServerLive(false);
     } finally {
       setLoading(false);
     }
@@ -138,7 +245,7 @@ function AdminContent() {
   // Review Actions
   const handleReviewStatus = async (id: number, status: 'Approved' | 'Rejected' | 'Pending') => {
     try {
-      const res = await fetch(`${API_BASE}/review/${id}/status`, {
+      const res = await apiFetch(`${API_BASE}/review/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -157,7 +264,7 @@ function AdminContent() {
   const handleDeleteReview = async (id: number) => {
     if (!confirm(`Delete review #${id}?`)) return;
     try {
-      const res = await fetch(`${API_BASE}/review/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${API_BASE}/review/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setReviews((prev) => prev.filter((r) => r.id !== id));
         toast(`Review #${id} deleted`);
@@ -172,7 +279,7 @@ function AdminContent() {
   // Developer Actions
   const handleDeveloperStatus = async (id: number, status: DeveloperItem['status']) => {
     try {
-      const res = await fetch(`${API_BASE}/developer/${id}/status`, {
+      const res = await apiFetch(`${API_BASE}/developer/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -191,7 +298,7 @@ function AdminContent() {
   const handleDeleteDeveloper = async (id: number) => {
     if (!confirm(`Delete developer application #${id}?`)) return;
     try {
-      const res = await fetch(`${API_BASE}/developer/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${API_BASE}/developer/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setDevelopers((prev) => prev.filter((d) => d.id !== id));
         toast(`Application #${id} deleted`);
@@ -206,7 +313,7 @@ function AdminContent() {
   // Contact Actions
   const handleContactStatus = async (id: number, status: ContactItem['status']) => {
     try {
-      const res = await fetch(`${API_BASE}/contact/${id}/status`, {
+      const res = await apiFetch(`${API_BASE}/contact/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -225,7 +332,7 @@ function AdminContent() {
   const handleDeleteContact = async (id: number) => {
     if (!confirm(`Delete inquiry #${id}?`)) return;
     try {
-      const res = await fetch(`${API_BASE}/contact/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${API_BASE}/contact/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setContacts((prev) => prev.filter((c) => c.id !== id));
         toast(`Inquiry #${id} deleted`);
@@ -240,7 +347,7 @@ function AdminContent() {
   // Portfolio Actions
   const handlePortfolioStatus = async (id: number, status: PortfolioItem['status']) => {
     try {
-      const res = await fetch(`${API_BASE}/portfolio/${id}/status`, {
+      const res = await apiFetch(`${API_BASE}/portfolio/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -259,7 +366,7 @@ function AdminContent() {
   const handleDeletePortfolio = async (id: number) => {
     if (!confirm(`Delete project #${id}?`)) return;
     try {
-      const res = await fetch(`${API_BASE}/portfolio/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${API_BASE}/portfolio/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setPortfolios((prev) => prev.filter((p) => p.id !== id));
         toast(`Project #${id} deleted`);
@@ -338,7 +445,7 @@ function AdminContent() {
 
     try {
       if (editingPortfolioId) {
-        const res = await fetch(`${API_BASE}/portfolio/${editingPortfolioId}`, {
+        const res = await apiFetch(`${API_BASE}/portfolio/${editingPortfolioId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -354,7 +461,7 @@ function AdminContent() {
           toast('Server returned error updating project');
         }
       } else {
-        const res = await fetch(`${API_BASE}/portfolio`, {
+        const res = await apiFetch(`${API_BASE}/portfolio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -532,99 +639,97 @@ function AdminContent() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8f6f0', color: '#102b23', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Top Header */}
-      <header
-        style={{
-          background: '#173d32',
-          padding: '16px 24px',
-          color: '#f1e8d8',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 12,
-          borderBottom: '2px solid #b99a65',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.3px', color: '#ffffff' }}>
-            Valance Admin
-          </span>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 11,
-              padding: '2px 8px',
-              borderRadius: 4,
-              fontWeight: 600,
-              background: isServerLive ? '#1e4638' : '#3d1717',
-              color: isServerLive ? '#6ee7b7' : '#fca5a5',
-              border: `1px solid ${isServerLive ? '#2e6b56' : '#7f1d1d'}`,
-            }}
-          >
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: isServerLive ? '#34d399' : '#ef4444',
-              }}
-            />
-            {isServerLive ? 'Connected: 7001' : 'Backend Offline'}
-          </span>
+      {/* Top Luxury Header */}
+      <header className="admin-header">
+        <div className="admin-header-brand">
+          <ValanceAdminLogo variant="header" />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="admin-nav-actions">
           <button
             onClick={loadData}
             disabled={loading}
-            style={{
-              background: '#224e41',
-              color: '#ffffff',
-              border: '1px solid #366d5b',
-              padding: '6px 12px',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className={`cyclone-btn${loading ? ' is-active' : ''}`}
+            title={loading ? 'Refreshing data…' : 'Refresh data'}
+            aria-label="Refresh data"
           >
-            {loading ? 'Refreshing…' : 'Refresh'}
+            <span className="cyclone-icon" aria-hidden="true">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 28 28"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <defs>
+                  <linearGradient id="cycloneGrad" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#fbf7ef" />
+                    <stop offset="35%" stopColor="#d8b97d" />
+                    <stop offset="70%" stopColor="#34d399" />
+                    <stop offset="100%" stopColor="#b99a65" />
+                  </linearGradient>
+                </defs>
+                {/* The Eye of the Cyclone */}
+                <circle cx="14" cy="14" r="2.8" stroke="url(#cycloneGrad)" strokeWidth="2" fill="#0d261e" />
+
+                {/* Spiral Arm 1 */}
+                <path
+                  d="M14 3 C19.5 3 24.5 7.5 25 13 C25.5 18 22 22 17.5 22.5 C14 23 11 20.5 10.5 17 C10 14 12 11.5 14.5 11"
+                  stroke="url(#cycloneGrad)"
+                  strokeWidth="2.2"
+                />
+                {/* Spiral Arm 2 */}
+                <path
+                  d="M14 25 C8.5 25 3.5 20.5 3 15 C2.5 10 6 6 10.5 5.5 C14 5 17 7.5 17.5 11 C18 14 16 16.5 13.5 17"
+                  stroke="url(#cycloneGrad)"
+                  strokeWidth="2.2"
+                />
+                {/* Outer atmospheric storm bands */}
+                <path
+                  d="M20 5 C23.5 8 25.5 12 25 16.5"
+                  stroke="#d8b97d"
+                  strokeWidth="1.4"
+                  strokeDasharray="4 3"
+                  opacity="0.85"
+                />
+                <path
+                  d="M8 23 C4.5 20 2.5 16 3 11.5"
+                  stroke="#34d399"
+                  strokeWidth="1.4"
+                  strokeDasharray="4 3"
+                  opacity="0.85"
+                />
+              </svg>
+            </span>
           </button>
+
+          <button
+            onClick={onLogout}
+            className="admin-nav-signout-btn"
+            title="Sign out of Admin Panel"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+
           <a
             href="/"
-            style={{
-              color: '#b99a65',
-              fontSize: 12,
-              fontWeight: 600,
-              textDecoration: 'none',
-              marginLeft: 8,
-            }}
+            className="admin-nav-exit-link"
+            title="Return to public site"
           >
-            Exit to Site →
+            <span>Exit to Site</span>
+            <span className="admin-exit-arrow">→</span>
           </a>
         </div>
       </header>
 
       {/* Main Container */}
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 20px 48px' }}>
-        {/* Connection Notice if Server Offline */}
-        {isServerLive === false && (
-          <div
-            style={{
-              background: '#fee2e2',
-              border: '1px solid #f87171',
-              color: '#991b1b',
-              padding: '12px 16px',
-              borderRadius: 6,
-              fontSize: 13,
-              marginBottom: 20,
-            }}
-          >
-            <strong>Backend Unreachable:</strong> Cannot connect to <code>http://localhost:7001</code>. Make sure the Node server is running with <code>npm run dev</code>. Showing only live database data.
-          </div>
-        )}
 
         {/* =========================================================================
             GRAPHS & CHARTS SECTION (INSTEAD OF STAT CARDS)
@@ -1762,10 +1867,399 @@ function AdminContent() {
   );
 }
 
+function AdminLogin({
+  onLoginSuccess,
+}: {
+  onLoginSuccess: (user: AdminUser, token: string) => void;
+}) {
+  const toast = useToast();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      setError('Please provide both administrator email and password.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data) {
+        setError(data?.message || 'Invalid administrator email or password.');
+        return;
+      }
+
+      if (data.result?.type !== 'admin') {
+        setError('Access denied: Account does not have administrator privileges.');
+        return;
+      }
+
+      const token = data.result?.accessToken || '';
+      const user = data.result?.user;
+
+      toast(`Welcome back, ${user?.firstname || 'Admin'}!`);
+      onLoginSuccess(user, token);
+    } catch {
+      setError(
+        'Unable to reach backend server at http://localhost:7001. Please verify that the Node.js backend is running.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#f8f6f0',
+        color: '#102b23',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '32px 16px',
+        position: 'relative',
+      }}
+    >
+      {/* Background ambient accents */}
+      <div
+        style={{
+          position: 'absolute',
+          width: 460,
+          height: 460,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(185, 154, 101, 0.12) 0%, rgba(248, 246, 240, 0) 70%)',
+          top: '10%',
+          pointerEvents: 'none',
+        }}
+      />
+
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 420,
+          background: '#ffffff',
+          borderRadius: 16,
+          border: '1px solid #e5d6bf',
+          boxShadow: '0 4px 6px -1px rgba(16, 43, 35, 0.05), 0 20px 40px -15px rgba(16, 43, 35, 0.12)',
+          padding: '36px 32px',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {/* Modern Creative Valance Logo */}
+        <ValanceAdminLogo variant="login" />
+
+        {/* Error Alert */}
+        {error && (
+          <div
+            style={{
+              background: '#fee2e2',
+              border: '1px solid #f87171',
+              color: '#991b1b',
+              padding: '10px 14px',
+              borderRadius: 8,
+              fontSize: 13,
+              lineHeight: 1.4,
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 8,
+            }}
+          >
+            <span style={{ fontWeight: 700, fontSize: 14 }}>⚠</span>
+            <div style={{ flex: 1 }}>{error}</div>
+          </div>
+        )}
+
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <label
+              htmlFor="admin-email"
+              style={{
+                display: 'block',
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#173d32',
+                marginBottom: 6,
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Email Address
+            </label>
+            <input
+              id="admin-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@gmail.com"
+              required
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: 8,
+                border: '1px solid #d5cbb8',
+                background: '#fbf9f4',
+                color: '#102b23',
+                fontSize: 14,
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+              }}
+            />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label
+                htmlFor="admin-password"
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: '#173d32',
+                  letterSpacing: '0.02em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  fontSize: 11,
+                  color: '#b99a65',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  padding: 0,
+                }}
+              >
+                {showPassword ? 'Hide password' : 'Show password'}
+              </button>
+            </div>
+            <input
+              id="admin-password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••••••"
+              required
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: 8,
+                border: '1px solid #d5cbb8',
+                background: '#fbf9f4',
+                color: '#102b23',
+                fontSize: 14,
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              marginTop: 6,
+              background: '#173d32',
+              color: '#f1e8d8',
+              border: 'none',
+              borderRadius: 8,
+              padding: '13px 20px',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              transition: 'background-color 0.2s ease, transform 0.1s ease',
+              boxShadow: '0 4px 14px rgba(23, 61, 50, 0.25)',
+            }}
+          >
+            {loading ? (
+              <>
+                <span
+                  style={{
+                    width: 14,
+                    height: 14,
+                    border: '2px solid rgba(241, 232, 216, 0.4)',
+                    borderTopColor: '#f1e8d8',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }}
+                />
+                Signing in…
+              </>
+            ) : (
+              'Sign In to Dashboard →'
+            )}
+          </button>
+        </form>
+
+        {/* Back link */}
+        <div style={{ marginTop: 20, textAlign: 'center' }}>
+          <a
+            href="/"
+            style={{
+              fontSize: 12,
+              color: '#716c60',
+              textDecoration: 'none',
+              fontWeight: 600,
+              transition: 'color 0.2s ease',
+            }}
+          >
+            ← Return to Valance website
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(typeof window !== 'undefined');
+
+  // Verify session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('valance_admin_token') : null;
+
+        if (storedToken) {
+          const res = await fetch(`${API_BASE}/admin/me`, {
+            headers: { Authorization: `Bearer ${storedToken}` },
+            credentials: 'include',
+          }).catch(() => null);
+
+          if (res && res.ok) {
+            const data = await res.json();
+            if (data?.admin) {
+              setAdminUser(data.admin);
+              setAuthToken(storedToken);
+              setIsAuthenticated(true);
+              setIsCheckingAuth(false);
+              return;
+            }
+          }
+        }
+
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('valance_admin_token');
+          localStorage.removeItem('valance_admin_user');
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  const handleLoginSuccess = (user: AdminUser, token: string) => {
+    setAdminUser(user);
+    setAuthToken(token);
+    setIsAuthenticated(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('valance_admin_token', token);
+      localStorage.setItem('valance_admin_user', JSON.stringify(user));
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => null);
+    } catch {
+      // ignore
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('valance_admin_token');
+      localStorage.removeItem('valance_admin_user');
+    }
+    setAdminUser(null);
+    setAuthToken(null);
+    setIsAuthenticated(false);
+  };
+
+  if (isCheckingAuth) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: '#f8f6f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          color: '#173d32',
+        }}
+      >
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              border: '3px solid rgba(23, 61, 50, 0.2)',
+              borderTopColor: '#b99a65',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }}
+          />
+          <span style={{ fontSize: 13, color: '#716c60', fontWeight: 600 }}>
+            Checking administrator credentials…
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ToastProvider>
-      <AdminContent />
+      {isAuthenticated ? (
+        <AdminContent
+          adminUser={adminUser}
+          authToken={authToken}
+          onLogout={handleLogout}
+        />
+      ) : (
+        <AdminLogin onLoginSuccess={handleLoginSuccess} />
+      )}
     </ToastProvider>
   );
 }
