@@ -198,12 +198,10 @@ function AdminContent({
 
   const loadData = async () => {
     setLoading(true);
-    let serverOk = false;
     try {
       // 1. Fetch reviews
       const revRes = await apiFetch(`${API_BASE}/review`).catch(() => null);
       if (revRes && revRes.ok) {
-        serverOk = true;
         const revJson = await revRes.json();
         setReviews(Array.isArray(revJson.reviews) ? revJson.reviews : []);
       }
@@ -211,7 +209,6 @@ function AdminContent({
       // 2. Fetch developers
       const devRes = await apiFetch(`${API_BASE}/developer`).catch(() => null);
       if (devRes && devRes.ok) {
-        serverOk = true;
         const devJson = await devRes.json();
         setDevelopers(Array.isArray(devJson.applications) ? devJson.applications : []);
       }
@@ -219,7 +216,6 @@ function AdminContent({
       // 3. Fetch contacts
       const conRes = await apiFetch(`${API_BASE}/contact`).catch(() => null);
       if (conRes && conRes.ok) {
-        serverOk = true;
         const conJson = await conRes.json();
         setContacts(Array.isArray(conJson.contacts) ? conJson.contacts : []);
       }
@@ -227,7 +223,6 @@ function AdminContent({
       // 4. Fetch portfolios
       const portRes = await apiFetch(`${API_BASE}/portfolio`).catch(() => null);
       if (portRes && portRes.ok) {
-        serverOk = true;
         const portJson = await portRes.json();
         setPortfolios(Array.isArray(portJson.portfolios) ? portJson.portfolios : []);
       }
