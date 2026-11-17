@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:7001';
+import { API_BASE } from '../config';
 
 export const CONTACT = {
   email: 'valancecollectives@gmail.com',

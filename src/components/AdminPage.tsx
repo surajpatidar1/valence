@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { ToastProvider, useToast } from './Toast';
 
-const API_BASE = 'http://localhost:7001';
+import { API_BASE } from '../config';
 
 interface ReviewItem {
   id: number;

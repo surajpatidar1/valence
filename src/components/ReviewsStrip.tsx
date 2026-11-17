@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Reveal from './Reveal';
+import { API_BASE } from '../config';
 
 interface ApprovedReview {
   id: number | string;
@@ -31,7 +32,7 @@ export default function ReviewsStrip() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:7001/review/approved')
+    fetch(`${API_BASE}/review/approved`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && Array.isArray(data.reviews)) {

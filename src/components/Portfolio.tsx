@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Reveal from './Reveal';
+import { API_BASE } from '../config';
 
 interface PortfolioItem {
   id: number;
@@ -73,7 +74,7 @@ export default function Portfolio() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:7001/portfolio/published')
+    fetch(`${API_BASE}/portfolio/published`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && Array.isArray(data.portfolios)) {
