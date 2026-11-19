@@ -1914,7 +1914,7 @@ function AdminLogin({
       onLoginSuccess(user, token);
     } catch {
       setError(
-        'Unable to reach backend server at http://localhost:7001. Please verify that the Node.js backend is running.',
+        `Unable to reach backend server at ${API_BASE}. Please verify that the backend is running and CORS is enabled.`,
       );
     } finally {
       setLoading(false);

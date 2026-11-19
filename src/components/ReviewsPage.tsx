@@ -6,6 +6,7 @@ import BackToTop from './BackToTop';
 import Reveal from './Reveal';
 import { ToastProvider, useToast } from './Toast';
 import { CONTACT } from '../data/contact';
+import { API_BASE } from '../config';
 import type { ProjectType } from '../data/reviews';
 
 const PROJECT_TYPES: ProjectType[] = [
@@ -91,7 +92,7 @@ function ReviewSubmissionForm() {
 
     setStatus('sending');
     try {
-      const endpoint = CONTACT.reviewFormEndpoint || 'http://localhost:7001/review';
+      const endpoint = CONTACT.reviewFormEndpoint || `${API_BASE}/review`;
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
