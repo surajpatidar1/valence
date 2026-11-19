@@ -181,6 +181,16 @@ function AdminContent({
   // Portfolio modal state
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [editingPortfolioId, setEditingPortfolioId] = useState<number | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
+  const resolveImageSrc = (img?: string | null) => {
+    if (!img) return '';
+    if (img.startsWith('http://') || img.startsWith('https://')) return img;
+    if (img.startsWith('/')) return img;
+    return `${API_BASE}/storage/${img}`;
+  };
+
   const [portfolioForm, setPortfolioForm] = useState({
     title: '',
     category: 'Web',
@@ -375,6 +385,7 @@ function AdminContent({
 
   const openCreatePortfolio = () => {
     setEditingPortfolioId(null);
+    setImagePreviewUrl(null);
     setPortfolioForm({
       title: '',
       category: 'Web',
@@ -394,6 +405,7 @@ function AdminContent({
 
   const openEditPortfolio = (item: PortfolioItem) => {
     setEditingPortfolioId(item.id);
+    setImagePreviewUrl(item.image ? resolveImageSrc(item.image) : null);
     setPortfolioForm({
       title: item.title,
       category: item.category,
@@ -409,6 +421,48 @@ function AdminContent({
       status: item.status,
     });
     setShowPortfolioModal(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Instant local preview
+    const objectUrl = URL.createObjectURL(file);
+    setImagePreviewUrl(objectUrl);
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await apiFetch(`${API_BASE}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Upload failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (!data.filename) {
+        throw new Error('Upload succeeded but no filename was returned from server');
+      }
+
+      setPortfolioForm((prev) => ({
+        ...prev,
+        image: data.filename,
+      }));
+      toast(`Image uploaded: ${data.originalFilename || data.filename}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Image upload failed';
+      toast(msg);
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
   };
 
   const handleSavePortfolio = async (e: FormEvent) => {
@@ -1532,6 +1586,22 @@ function AdminContent({
                     </div>
                   )}
 
+                  {p.image && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
+                      <img
+                        src={resolveImageSrc(p.image)}
+                        alt={p.title}
+                        style={{ width: 54, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #d1d5db' }}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                      <span style={{ fontSize: 12, color: '#4b5563', fontFamily: 'monospace' }}>
+                        {p.image}
+                      </span>
+                    </div>
+                  )}
+
                   {p.tags && p.tags.length > 0 && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                       <span style={{ fontSize: 11, color: '#9ca3af' }}>Tags:</span>
@@ -1797,15 +1867,78 @@ function AdminContent({
 
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
-                      Image Path (Optional)
+                      Portfolio Image
                     </label>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                      <label
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '6px 12px',
+                          background: uploadingImage ? '#9ca3af' : '#173D32',
+                          color: '#ffffff',
+                          borderRadius: 4,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: uploadingImage ? 'wait' : 'pointer',
+                        }}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={uploadingImage}
+                          onChange={handleImageUpload}
+                          style={{ display: 'none' }}
+                        />
+                        {uploadingImage ? 'Uploading image...' : '📁 Choose & Upload File'}
+                      </label>
+                      {portfolioForm.image && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPortfolioForm({ ...portfolioForm, image: '' });
+                            setImagePreviewUrl(null);
+                          }}
+                          style={{
+                            padding: '6px 10px',
+                            background: '#fee2e2',
+                            color: '#991b1b',
+                            border: '1px solid #fecaca',
+                            borderRadius: 4,
+                            fontSize: 11,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="text"
-                      placeholder="/portfolio/app.webp"
+                      placeholder="e.g. tmp/image.png or https://... or /portfolio/app.webp"
                       value={portfolioForm.image}
-                      onChange={(e) => setPortfolioForm({ ...portfolioForm, image: e.target.value })}
+                      onChange={(e) => {
+                        setPortfolioForm({ ...portfolioForm, image: e.target.value });
+                        setImagePreviewUrl(e.target.value ? resolveImageSrc(e.target.value) : null);
+                      }}
                       style={{ width: '100%', padding: '8px 10px', borderRadius: 4, border: '1px solid #d1d5db', fontSize: 13, boxSizing: 'border-box' }}
                     />
+                    {imagePreviewUrl && (
+                      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <img
+                          src={imagePreviewUrl}
+                          alt="Thumbnail preview"
+                          style={{ width: 64, height: 44, objectFit: 'cover', borderRadius: 4, border: '1px solid #d1d5db' }}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        <span style={{ fontSize: 11, color: '#6b7280' }}>
+                          {portfolioForm.image.startsWith('tmp/') ? '✓ Uploaded to server (tmp)' : 'Preview'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

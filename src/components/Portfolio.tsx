@@ -23,10 +23,15 @@ interface PortfolioItem {
 
 function CardMockup({ type, image, title }: { type: string; image?: string | null; title?: string }) {
   if (image) {
+    const src =
+      image.startsWith('http://') || image.startsWith('https://') || image.startsWith('/')
+        ? image
+        : `${API_BASE}/storage/${image}`;
+
     return (
       <div className="proof-mock-img" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
         <img
-          src={image}
+          src={src}
           alt={title ? `${title} project screenshot` : 'Valance case study project screenshot'}
           loading="lazy"
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
