@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
 
-Sitemap: https://valence-sable.vercel.app/sitemap.xml
-
+Sitemap: https://valancecollectives.com/sitemap.xml

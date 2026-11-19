@@ -3,33 +3,112 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Valance — Web, App & AI Development</title>
-    <meta name="description" content="Valance builds websites, mobile apps, SEO and AI-powered automation for growing businesses." />
+
+    <!-- Primary SEO -->
+    <title>Custom Web, App &amp; AI Development Agency | Valance Collectives</title>
+    <meta
+      name="description"
+      content="Valance Collectives builds custom websites, mobile applications, software solutions and AI automations to help businesses grow. Let's build something great."
+    />
+    <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#173D32" />
-    <link rel="canonical" href="https://valence-sable.vercel.app/" />
+    <link rel="canonical" href="https://valancecollectives.com/" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Valance — Web, App & AI Development" />
-    <meta property="og:description" content="Websites, mobile apps, SEO and AI-powered automation for growing businesses." />
-    <meta property="og:url" content="https://valence-sable.vercel.app/" />
+    <meta property="og:site_name" content="Valance Collectives" />
+    <meta
+      property="og:title"
+      content="Custom Web, App &amp; AI Development Agency | Valance Collectives"
+    />
+    <meta
+      property="og:description"
+      content="Valance Collectives builds custom websites, mobile applications, software solutions and AI automations to help businesses grow."
+    />
+    <meta property="og:url" content="https://valancecollectives.com/" />
+    <meta
+      property="og:image"
+      content="https://valancecollectives.com/logo-horizontal.svg"
+    />
+
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Custom Web, App &amp; AI Development Agency | Valance Collectives"
+    />
+    <meta
+      name="twitter:description"
+      content="Custom websites, mobile apps, software solutions and AI automation by Valance Collectives."
+    />
+    <meta
+      name="twitter:image"
+      content="https://valancecollectives.com/logo-horizontal.svg"
+    />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Structured Data -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "ProfessionalService",
-        "name": "Valance",
-        "description": "Web development, app development, SEO, business automation and LLM integration.",
-        "url": "https://valence-sable.vercel.app/",
-        "serviceType": ["Web Development", "App Development", "SEO", "Business Automation", "LLM Integration"]
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://valancecollectives.com/#organization",
+            "name": "Valance Collectives",
+            "url": "https://valancecollectives.com/",
+            "logo": "https://valancecollectives.com/logo-horizontal.svg",
+            "email": "valancecollectives@gmail.com"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://valancecollectives.com/#website",
+            "url": "https://valancecollectives.com/",
+            "name": "Valance Collectives",
+            "description": "Custom web development, mobile applications, software solutions, AI integration and business automation.",
+            "publisher": {
+              "@id": "https://valancecollectives.com/#organization"
+            }
+          },
+          {
+            "@type": "ProfessionalService",
+            "@id": "https://valancecollectives.com/#service",
+            "name": "Valance Collectives",
+            "url": "https://valancecollectives.com/",
+            "logo": "https://valancecollectives.com/logo-horizontal.svg",
+            "email": "valancecollectives@gmail.com",
+            "description": "Web development, mobile app development, custom software, SEO, business automation and AI integration services.",
+            "serviceType": [
+              "Web Development",
+              "Mobile App Development",
+              "Custom Software Development",
+              "Search Engine Optimization",
+              "Business Automation",
+              "AI and LLM Integration"
+            ],
+            "parentOrganization": {
+              "@id": "https://valancecollectives.com/#organization"
+            }
+          }
+        ]
       }
     </script>
   </head>
   <body>
     <div id="root"></div>
-    <noscript>Valance — IT solutions and automation. Please enable JavaScript to view this site.</noscript>
+    <noscript>
+      Valance Collectives — Custom web development, mobile applications, software solutions and AI automation. Please enable JavaScript to view this site.
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

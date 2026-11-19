@@ -21,13 +21,13 @@ interface PortfolioItem {
   createdAt: string;
 }
 
-function CardMockup({ type, image }: { type: string; image?: string | null }) {
+function CardMockup({ type, image, title }: { type: string; image?: string | null; title?: string }) {
   if (image) {
     return (
       <div className="proof-mock-img" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
         <img
           src={image}
-          alt=""
+          alt={title ? `${title} project screenshot` : 'Valance case study project screenshot'}
           loading="lazy"
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
@@ -112,7 +112,7 @@ export default function Portfolio() {
                 transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
               >
                 <div className="case-card__media">
-                  <CardMockup type={p.category} image={p.image} />
+                  <CardMockup type={p.category} image={p.image} title={p.title} />
                   {p.isFeatured && <span className="case-card__badge">Featured</span>}
                 </div>
 
